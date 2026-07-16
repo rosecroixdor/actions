@@ -46,7 +46,7 @@ runs:
   using: composite
   steps:
     - name: Setup kubeconfig
-      uses: rosecroixdor/core/set-kubeconfig@main
+      uses: rosecroixdor/actions/set-kubeconfig@main
       with:
         kubeconfig: ${{ inputs.kubeconfig }}
 
@@ -61,7 +61,7 @@ runs:
 
 
     - name: Ensure GHCR pull secret
-      uses: rosecroixdor/core/ensure-ghcr-secret@main
+      uses: rosecroixdor/actions/ensure-ghcr-secret@main
       with:
         namespace: ${{ inputs.namespace }}
         secret_name: ${{ inputs.ghcr_secret_name }}
