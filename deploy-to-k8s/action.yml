@@ -73,6 +73,12 @@ runs:
       shell: bash
       run: |
         kubectl label namespace "${{ inputs.namespace }}" gateway-access=true --overwrite
+
+    - name: Login Helm to GHCR
+      shell: bash
+      run: |
+        echo "${{ inputs.ghcr_password }}" | helm registry login "${{ inputs.ghcr_registry }}" -u "${{ inputs.ghcr_username }}" --password-stdin
+
     - name: Deploy with Helm
       shell: bash
       run: |
