@@ -1,0 +1,93 @@
+name: Helm deploy
+
+description: Deploy an app chart from GHCR to a Kubernetes namespace
+
+inputs:
+  kubeconfig:
+    description: Kubeconfig content
+    required: true
+  namespace:
+    description: Target Kubernetes namespace
+    required: true
+  image:
+    description: Full image name (for example owner/api-rco)
+    required: true
+  version:
+    description: Image tag/version to deploy
+    required: true
+  chart:
+    description: OCI chart reference
+    required: false
+    default: oci://ghcr.io/${{ github.repository_owner }}/rco-apps
+  release_name:
+    description: Helm release name
+    required: false
+    default: rco-apps
+  cors_yaml:
+    description: Optional YAML values content for CORS configuration
+    required: false
+    default: ''
+  ghcr_secret_name:
+    description: Name of the imagePullSecret
+    required: false
+    default: ghcr-secret
+  ghcr_registry:
+    description: Container registry hostname
+    required: false
+    default: ghcr.io
+  ghcr_username:
+    description: Registry username
+    required: true
+  ghcr_password:
+    description: Registry password or token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup kubeconfig
+      uses: rosecroixdor/core/set-kubeconfig@main
+      with:
+        kubeconfig: ${{ inputs.kubeconfig }}
+
+    - name: Validate deploy inputs
+      shell: bash
+      run: |
+        test -n "${{ inputs.namespace }}" || (echo "namespace is empty" && exit 1)
+        test -n "${{ inputs.image }}" || (echo "image is empty" && exit 1)
+        test -n "${{ inputs.version }}" || (echo "version is empty" && exit 1)
+        test -n "${{ inputs.chart }}" || (echo "chart is empty" && exit 1)
+        test -n "${{ inputs.release_name }}" || (echo "release_name is empty" && exit 1)
+
+
+    - name: Ensure GHCR pull secret
+      uses: rosecroixdor/core/ensure-ghcr-secret@main
+      with:
+        namespace: ${{ inputs.namespace }}
+        secret_name: ${{ inputs.ghcr_secret_name }}
+        registry: ${{ inputs.ghcr_registry }}
+        username: ${{ inputs.ghcr_username }}
+        password: ${{ inputs.ghcr_password }}
+
+    - name: Label namespace for gateway access
+      shell: bash
+      run: |
+        kubectl label namespace "${{ inputs.namespace }}" gateway-access=true --overwrite
+    - name: Deploy with Helm
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        HELM_ARGS=(
+          --namespace "${{ inputs.namespace }}"
+          --set "image.name=${{ inputs.image }}"
+          --set "image.tag=${{ inputs.version }}"
+          --set "Cors.AllowedOrigins[0]=http://localhost:3000"
+        )
+
+        if [ -n "${{ inputs.cors_yaml }}" ]; then
+          printf '%s\n' "${{ inputs.cors_yaml }}" > ./cors.yaml
+          HELM_ARGS+=( -f ./cors.yaml )
+        fi
+
+        helm upgrade --install "${{ inputs.release_name }}" "${{ inputs.chart }}" "${HELM_ARGS[@]}"

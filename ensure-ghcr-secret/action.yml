@@ -1,0 +1,44 @@
+name: Ensure GHCR pull secret
+description: Create or replace a docker-registry secret for GHCR in a namespace
+inputs:
+  namespace:
+    description: Target Kubernetes namespace
+    required: false
+    default: dev
+  secret_name:
+    description: Name of the imagePullSecret
+    required: false
+    default: ghcr-secret
+  registry:
+    description: Container registry hostname
+    required: false
+    default: ghcr.io
+  username:
+    description: Registry username
+    required: true
+  password:
+    description: Registry password or token
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        test -n "${{ inputs.namespace }}" || (echo "namespace is empty" && exit 1)
+        test -n "${{ inputs.secret_name }}" || (echo "secret_name is empty" && exit 1)
+        test -n "${{ inputs.registry }}" || (echo "registry is empty" && exit 1)
+        test -n "${{ inputs.username }}" || (echo "username is empty" && exit 1)
+        test -n "${{ inputs.password }}" || (echo "password is empty" && exit 1)
+    - name: Ensure namespace exists
+      shell: bash
+      run: |
+        kubectl get ns "${{ inputs.namespace }}" >/dev/null 2>&1 || kubectl create namespace "${{ inputs.namespace }}"
+    - name: Recreate image pull secret
+      shell: bash
+      run: |
+        kubectl -n "${{ inputs.namespace }}" delete secret "${{ inputs.secret_name }}" --ignore-not-found
+        kubectl -n "${{ inputs.namespace }}" create secret docker-registry "${{ inputs.secret_name }}" \
+          --docker-server="${{ inputs.registry }}" \
+          --docker-username="${{ inputs.username }}" \
+          --docker-password="${{ inputs.password }}"

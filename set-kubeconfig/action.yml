@@ -1,0 +1,22 @@
+name: 'Setup OVH Kubeconfig'
+description: 'Configure le kubeconfig pour le cluster OVH'
+inputs:
+  kubeconfig:
+    description: 'kubeconfig'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Check KUBECONFIG secret
+      run: |
+        if [ -z "${{ inputs.kubeconfig }}" ]; then
+          echo "::error::KUBECONFIG secret is not set. Please configure the KUBECONFIG secret in your repository settings."
+          exit 1
+        fi
+      shell: bash
+    - name: Create directory
+      run: mkdir -p $HOME/.kube
+      shell: bash
+    - name: Write config
+      run: echo "${{ inputs.kubeconfig }}" > $HOME/.kube/config
+      shell: bash
