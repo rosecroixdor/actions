@@ -1,0 +1,63 @@
+name: Commit version file
+description: Write a version file into another repository and commit/push the change
+
+inputs:
+  repository:
+    description: Target repository in owner/name format
+    required: true
+  token:
+    description: Token with write access to the target repository
+    required: true
+  image:
+    description: Image name to write
+    required: true
+  version:
+    description: Version to write
+    required: true
+  file_path:
+    description: Relative path of the version file in the target repository
+    required: false
+    default: version.yaml
+  checkout_path:
+    description: Local checkout path for the target repository
+    required: false
+    default: deployment
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout target repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repository }}
+        token: ${{ inputs.token }}
+        path: ${{ inputs.checkout_path }}
+
+    - name: Write version file
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        target_file="${{ inputs.checkout_path }}/${{ inputs.file_path }}"
+        cat > "$target_file" <<EOF
+        image: ${{ inputs.image }}
+        version: ${{ inputs.version }}
+        EOF
+
+    - name: Commit and push version file
+      shell: bash
+      working-directory: ${{ inputs.checkout_path }}
+      run: |
+        set -euo pipefail
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        if [ -z "$(git status --porcelain -- ${{ inputs.file_path }})" ]; then
+          echo "No change in ${{ inputs.file_path }}"
+          exit 0
+        fi
+
+        git add "${{ inputs.file_path }}"
+        git commit -m "chore: bump version to ${{ inputs.version }}"
+        git push
