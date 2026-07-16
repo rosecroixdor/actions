@@ -6,6 +6,10 @@ inputs:
     description: Docker image name (for example api-rco)
     required: false
     default: ${{ github.event.repository.name }}
+  version:
+    description: Docker image version (for example 0.1.5)
+    required: false
+    default: ${{ github.event.inputs.version || github.ref_name }}
   dockerfile:
     description: Path to the Dockerfile
     required: false
@@ -32,7 +36,7 @@ runs:
     - name: Show image variables
       shell: bash
       run: |
-        echo "Tag actuel : ${{ github.ref_name }}"
+        echo "Tag actuel : ${{ inputs.version }}"
         echo "Short SHA : ${{ steps.vars.outputs.short_sha }}"
 
     - name: Build and push image
@@ -43,7 +47,7 @@ runs:
         push: true
         tags: |
           ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:latest
-          ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ github.ref_name }}
+          ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ inputs.version }}
           ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.vars.outputs.short_sha }}
     - name: Delete old packages
       uses: actions/delete-package-versions@v5
