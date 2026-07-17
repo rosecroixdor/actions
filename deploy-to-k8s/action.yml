@@ -17,6 +17,9 @@ inputs:
     description: Helm release name
     required: false
     default: rco-apps
+  version_yaml:
+    description: values.yaml content for the chart
+    required: true
   cors_yaml:
     description: Optional YAML values content for CORS configuration
     required: false
@@ -74,7 +77,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-
+        printf '%s\n' "${{ inputs.version_yaml }}" > ./version.yaml
         HELM_ARGS=(
           --namespace "${{ inputs.namespace }}"
           -f version.yaml
