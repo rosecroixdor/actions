@@ -77,7 +77,7 @@ runs:
 
         HELM_ARGS=(
           --namespace "${{ inputs.namespace }}"
-          -f version.yaml
+          -f ./${{ inputs.namespace }}.version.yaml
           --set "Cors.AllowedOrigins[0]=http://localhost:3000"
         )
 

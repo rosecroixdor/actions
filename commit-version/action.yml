@@ -14,6 +14,10 @@ inputs:
   version:
     description: Version to write
     required: true
+  environement:
+    description: Environment name to write
+    required: true
+  
   file_path:
     description: Relative path of the version file in the target repository
     required: false
@@ -38,10 +42,11 @@ runs:
       run: |
         set -euo pipefail
 
-        target_file="${{ inputs.checkout_path }}/${{ inputs.file_path }}"
+        target_file="${{ inputs.checkout_path }}/${{ inputs.environement }}.${{ inputs.file_path }}"
         cat > "$target_file" <<EOF
         ${{ inputs.image }}:
           image:
+            environement: ${{ inputs.environement }}
             name: ${{ inputs.image }}
             tag: ${{ inputs.version }}
         EOF
@@ -51,15 +56,15 @@ runs:
       working-directory: ${{ inputs.checkout_path }}
       run: |
         set -euo pipefail
-
+        file="${{ inputs.environement }}.${{ inputs.file_path }}"
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-        if [ -z "$(git status --porcelain -- ${{ inputs.file_path }})" ]; then
-          echo "No change in ${{ inputs.file_path }}"
+        if [ -z "$(git status --porcelain -- "$file")" ]; then
+          echo "No change in $file, skipping commit."
           exit 0
         fi
 
-        git add "${{ inputs.file_path }}"
+        git add "${{ inputs.environement }}.${{ inputs.file_path }}"
         git commit -m "chore: bump version to ${{ inputs.version }}"
         git push
