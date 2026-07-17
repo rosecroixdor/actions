@@ -66,5 +66,5 @@ runs:
         fi
 
         git add "${{ inputs.environement }}.${{ inputs.file_path }}"
-        git commit -m "chore: bump version to ${{ inputs.version }}"
+        git commit -m "chore: bump ${{ inputs.environement }} version to ${{ inputs.version }}"
         git push
