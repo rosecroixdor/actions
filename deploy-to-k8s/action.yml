@@ -20,9 +20,12 @@ inputs:
   version_yaml:
     description: values.yaml content for the chart
     required: true
-  cors_yaml:
-    description: Optional YAML values content for CORS configuration
-    required: false
+  app_name:
+    description: Name of the application to deploy
+    required: true
+  value_yaml:
+    description: YAML values content for the chart
+    required: true
     default: ''
   ghcr_secret_name:
     description: Name of the imagePullSecret
@@ -77,16 +80,13 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        printf '%s\n' "${{ inputs.value_yaml }}" > ./values.yaml
         printf '%s\n' "${{ inputs.version_yaml }}" > ./version.yaml
         HELM_ARGS=(
           --namespace "${{ inputs.namespace }}"
+          -f values.yaml
           -f version.yaml
           --set "Cors.AllowedOrigins[0]=http://localhost:3000"
         )
-
-        if [ -n "${{ inputs.cors_yaml }}" ]; then
-          printf '%s\n' "${{ inputs.cors_yaml }}" > ./cors.yaml
-          HELM_ARGS+=( -f ./cors.yaml )
-        fi
 
         helm upgrade --install "${{ inputs.release_name }}" "${{ inputs.chart }}" "${HELM_ARGS[@]}"
